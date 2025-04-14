@@ -10,6 +10,7 @@ import { API_BASE_URL } from "@/lib/config";
 export default function Login() {
   const hasMounted = useHasMounted();
   const router = useRouter();
+  
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,10 +25,14 @@ export default function Login() {
       const res = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify({ email, password }),
+        body: new URLSearchParams({
+          username: email,
+          password: password,
+        }),
       });
+      
 
       const data = await res.json();
 

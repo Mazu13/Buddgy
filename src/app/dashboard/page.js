@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import { fetchBoards } from "@/lib/api";
+import { fetchBoards } from "../../lib/api";
+
 import {
   CircularProgressbar,
   buildStyles,
@@ -17,32 +18,30 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [boards, setBoards] = useState([]);
-  const [members] = useState([{ name: "Ayşenur Mazıbaş" }]);
   const [showingIncome, setShowingIncome] = useState(true);
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-  }, [status, router]);
-
-  useEffect(() => {
-    const fetchBackendBoards = async () => {
+    const checkAccessAndFetchBoards = async () => {
       const token = localStorage.getItem("token");
-  
-      if (!token) {
+
+      // Erişim kontrolü: Ne session var ne token → login sayfasına gönder
+      if (!token && status === "unauthenticated") {
         router.push("/login");
         return;
       }
-  
+
       try {
-        const data = await fetchBoards(); // bu zaten yukarıda import edilmiş
+        const data = await fetchBoards(); // backend'den veri çek
         setBoards(data);
       } catch (err) {
         console.error("Could not fetch boards:", err);
       }
     };
-  
-    fetchBackendBoards();
-  }, [router]);
+
+    if (status !== "loading") {
+      checkAccessAndFetchBoards();
+    }
+  }, [status, router]);
 
   if (status === "loading") return <div className="text-center mt-20">Loading...</div>;
 
@@ -62,7 +61,7 @@ export default function Dashboard() {
   const incomePercent = totalSum === 0 ? 0 : Math.round((totalIncome / totalSum) * 100);
   const expensePercent = totalSum === 0 ? 0 : Math.round((totalExpense / totalSum) * 100);
   const balancePercent = totalIncome === 0 ? 0 : Math.round((netBalance / totalIncome) * 100);
-
+  const [members, setMembers] = useState([{ name: "Ayşenur Mazıbaş" }]);
   return (
     <div className="flex min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
       <Sidebar />
