@@ -39,7 +39,18 @@ export default function BudgetPage() {
   useEffect(() => {
     const savedBoards = localStorage.getItem("buddgy-boards");
     if (savedBoards) {
-      setBoards(JSON.parse(savedBoards));
+      const parsed = JSON.parse(savedBoards);
+    
+      // Eğer entry'de `date` yoksa, bugünün tarihini ver
+      const withDates = parsed.map((board) => ({
+        ...board,
+        entries: board.entries.map((entry) => ({
+          ...entry,
+          date: entry.date || new Date().toISOString().split("T")[0],
+        })),
+      }));
+    
+      setBoards(withDates);
     }
   }, []);
 
@@ -158,22 +169,30 @@ export default function BudgetPage() {
   const handleAddEntry = () => {
     const { type, name, amount } = entryData;
     if (!name || !amount || !selectedBoardId) return;
-
+  
+    const newEntry = {
+      type,
+      name,
+      amount: parseFloat(amount),
+      date: new Date().toISOString().split("T")[0], // YYYY-MM-DD formatında // 📌 Tarih eklendi
+    };
+  
     setBoards((prevBoards) =>
       prevBoards.map((board) =>
         board.id === selectedBoardId
           ? {
               ...board,
-              entries: [...board.entries, { type, name, amount: parseFloat(amount) }],
+              entries: [...board.entries, newEntry],
             }
           : board
       )
     );
-
+  
     setEntryData({ type: "+", name: "", amount: "" });
     setSelectedBoardId(null);
     setShowEntryModal(false);
   };
+  
 
   if (status === "loading") return <div className="text-center mt-20">Loading...</div>;
 
@@ -213,19 +232,17 @@ export default function BudgetPage() {
           </div>
 
           <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="boards" direction="horizontal" type="BOARD">
+            <Droppable droppableId="boards" direction="horizontal" type="BOARD" isDropDisabled={false}>
               {(provided) => (
                 <div
-                  className="flex gap-4 overflow-x-auto"
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
+                ref={provided.innerRef} {...provided.droppableProps} {...provided.dragHandleProps}
+                className="flex gap-4 overflow-x-auto"
                 >
                   {boards.map((board, index) => (
-                    <Draggable key={board.id} draggableId={board.id} index={index}>
+                    <Draggable key={board.id} draggableId={board.id.toString()} index={index}>
                       {(provided) => (
                         <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
+                          ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
                           className="bg-white dark:bg-white/10 rounded-xl shadow-md p-4 min-w-[300px] border border-gray-200 dark:border-white/10"
                         >
                           <div {...provided.dragHandleProps} className="cursor-move">
@@ -287,7 +304,7 @@ export default function BudgetPage() {
                             + Add Entry
                           </button>
 
-                          <Droppable droppableId={board.id} type="ENTRY">
+                          <Droppable droppableId={board.id.toString()} type="ENTRY" isDropDisabled={false}>
                             {(dropProvided) => (
                               <ul
                                 ref={dropProvided.innerRef}

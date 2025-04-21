@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import { fetchBoards } from "../../lib/api";
 
 import {
   CircularProgressbar,
@@ -17,41 +16,34 @@ import { Sparkles, Bell, User } from "lucide-react";
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+
   const [boards, setBoards] = useState([]);
   const [showingIncome, setShowingIncome] = useState(true);
+  const [members, setMembers] = useState([{ name: "Ayşenur Mazıbaş" }]);
 
   useEffect(() => {
-    const checkAccessAndFetchBoards = async () => {
-      const token = localStorage.getItem("token");
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
 
-      // Erişim kontrolü: Ne session var ne token → login sayfasına gönder
-      if (!token && status === "unauthenticated") {
-        router.push("/login");
-        return;
+    if (status === "authenticated") {
+      const savedBoards = localStorage.getItem("buddgy-boards");
+      if (savedBoards) {
+        setBoards(JSON.parse(savedBoards));
       }
-
-      try {
-        const data = await fetchBoards(); // backend'den veri çek
-        setBoards(data);
-      } catch (err) {
-        console.error("Could not fetch boards:", err);
-      }
-    };
-
-    if (status !== "loading") {
-      checkAccessAndFetchBoards();
     }
   }, [status, router]);
 
   if (status === "loading") return <div className="text-center mt-20">Loading...</div>;
 
   const totalIncome = boards
-    .flatMap((board) => board.entries)
+    .flatMap((board) => board.entries || [])
     .filter((entry) => entry.type === "+")
     .reduce((sum, entry) => sum + (entry.amount || 0), 0);
 
   const totalExpense = boards
-    .flatMap((board) => board.entries)
+    .flatMap((board) => board.entries || [])
     .filter((entry) => entry.type === "-")
     .reduce((sum, entry) => sum + (entry.amount || 0), 0);
 
@@ -61,7 +53,7 @@ export default function Dashboard() {
   const incomePercent = totalSum === 0 ? 0 : Math.round((totalIncome / totalSum) * 100);
   const expensePercent = totalSum === 0 ? 0 : Math.round((totalExpense / totalSum) * 100);
   const balancePercent = totalIncome === 0 ? 0 : Math.round((netBalance / totalIncome) * 100);
-  const [members, setMembers] = useState([{ name: "Ayşenur Mazıbaş" }]);
+
   return (
     <div className="flex min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
       <Sidebar />
@@ -132,6 +124,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Tip */}
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-xl shadow flex items-start gap-2 mb-6">
             <Sparkles className="text-yellow-600 mt-1 w-5 h-5" />
             <div>
@@ -140,6 +133,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Alert */}
           <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 p-4 rounded-xl shadow flex items-start gap-2">
             <Bell className="text-red-500 mt-1 w-5 h-5" />
             <div>
@@ -149,6 +143,7 @@ export default function Dashboard() {
           </div>
         </main>
 
+        {/* Sidebar Members */}
         <aside className="w-64 bg-white dark:bg-white/10 border-l border-gray-200 dark:border-white/10 p-6 hidden lg:block">
           <h2 className="text-lg font-semibold mb-4">Members</h2>
           <ul className="space-y-3">
