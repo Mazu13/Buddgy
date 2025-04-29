@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/lib/themeContext";
 import useHasMounted from "@/lib/useHasMounted";
+import { API_BASE_URL } from "@/lib/config";
+
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -19,10 +21,34 @@ export default function Signup() {
 
   if (!hasMounted) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Burada API'ye veri gönderilecek
-    router.push("/login");
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/`,
+        {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstname: formData.firstName,   // ✅ düzeltildi
+          lastname: formData.lastName,     // ✅ düzeltildi
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.detail || "Signup failed.");
+        return;
+      }
+  
+      // Başarılı ise login sayfasına yönlendir
+      router.push("/login");
+    } catch (err) {
+      console.error("Signup error:", err);
+      alert("Something went wrong. Please try again.");
+    }
   };
 
   return (

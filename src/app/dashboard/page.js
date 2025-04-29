@@ -1,10 +1,10 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import { API_BASE_URL } from "@/lib/config";
 
 import {
   CircularProgressbar,
@@ -14,7 +14,6 @@ import "react-circular-progressbar/dist/styles.css";
 import { Sparkles, Bell, User } from "lucide-react";
 
 export default function Dashboard() {
-  const { data: session, status } = useSession();
   const router = useRouter();
 
   const [boards, setBoards] = useState([]);
@@ -22,20 +21,57 @@ export default function Dashboard() {
   const [members, setMembers] = useState([{ name: "Ayşenur Mazıbaş" }]);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    const token = localStorage.getItem("token");
+    if (!token) {
       router.push("/login");
       return;
     }
 
-    if (status === "authenticated") {
-      const savedBoards = localStorage.getItem("buddgy-boards");
-      if (savedBoards) {
-        setBoards(JSON.parse(savedBoards));
-      }
+    const savedBoards = localStorage.getItem("buddgy-boards");
+    if (savedBoards) {
+      setBoards(JSON.parse(savedBoards));
     }
-  }, [status, router]);
+  }, [router]);
 
-  if (status === "loading") return <div className="text-center mt-20">Loading...</div>;
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const email = localStorage.getItem("email");
+    const name = localStorage.getItem("name");
+
+    if (token && email && name) {
+      const createUserIfNeeded = async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/users/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              firstname: name.split(" ")[0] || "Google",
+              lastname: name.split(" ")[1] || "User",
+              email: email,
+              password: "google-oauth",
+            }),
+          });
+
+          if (res.ok) {
+            console.log("User created in backend.");
+          } else {
+            const data = await res.json();
+            if (data.detail?.includes("zaten kayıtlı")) {
+              console.log("User already exists.");
+            } else {
+              console.warn("Backend error:", data);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to sync user to backend:", err);
+        }
+      };
+
+      createUserIfNeeded();
+    }
+  }, []);
 
   const totalIncome = boards
     .flatMap((board) => board.entries || [])
@@ -67,14 +103,19 @@ export default function Dashboard() {
           <div className="flex justify-between items-start mb-8">
             <div>
               <h1 className="text-3xl font-bold">
-                Welcome, {session?.user?.name?.split(" ")[0]} 👋
+                Welcome, {localStorage.getItem("name")?.split(" ")[0]} 👋
               </h1>
               <p className="text-gray-500 dark:text-gray-400 text-sm">
                 Here's a quick overview of your budget.
               </p>
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("name");
+                localStorage.removeItem("email");
+                router.push("/login");
+              }}
               className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
             >
               Log out
@@ -82,7 +123,6 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-            {/* Toggleable Income/Expense Card */}
             <div
               onClick={() => setShowingIncome(!showingIncome)}
               className="cursor-pointer bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 p-6 rounded-2xl shadow-sm flex flex-col items-center justify-center hover:shadow-md transition"
@@ -106,7 +146,6 @@ export default function Dashboard() {
               </p>
             </div>
 
-            {/* Net Balance Card */}
             <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 p-6 rounded-2xl shadow-sm flex flex-col items-center justify-center">
               <div className="w-24 h-24 mb-2">
                 <CircularProgressbar
@@ -124,7 +163,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Tip */}
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-xl shadow flex items-start gap-2 mb-6">
             <Sparkles className="text-yellow-600 mt-1 w-5 h-5" />
             <div>
@@ -133,7 +171,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Alert */}
           <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 p-4 rounded-xl shadow flex items-start gap-2">
             <Bell className="text-red-500 mt-1 w-5 h-5" />
             <div>
@@ -143,7 +180,6 @@ export default function Dashboard() {
           </div>
         </main>
 
-        {/* Sidebar Members */}
         <aside className="w-64 bg-white dark:bg-white/10 border-l border-gray-200 dark:border-white/10 p-6 hidden lg:block">
           <h2 className="text-lg font-semibold mb-4">Members</h2>
           <ul className="space-y-3">

@@ -20,9 +20,11 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
+  
     try {
-      const res = await fetch(`${API_BASE_URL}/login`, {
+      const res = await fetch(`${API_BASE_URL}/token`, {
+
+
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -32,22 +34,36 @@ export default function Login() {
           password: password,
         }),
       });
-      
-
-      const data = await res.json();
-
+  
+      const text = await res.text();
+      let data;
+  
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        console.error("JSON parse hatası:", text);
+        setError("Invalid response from server");
+        return;
+      }
+  
       if (!res.ok) {
         setError(data.detail || "Login failed");
         return;
       }
-
+  
+      if (!data.access_token) {
+        setError("Access token missing");
+        return;
+      }
+  
       localStorage.setItem("token", data.access_token);
       router.push("/dashboard");
     } catch (err) {
+      console.error("FETCH ERROR:", err);
       setError("Server error");
     }
   };
-
+  
   return (
     <div className="relative min-h-screen flex items-center justify-center text-gray-900 dark:text-white transition-colors duration-500 ease-in-out overflow-hidden">
       {/* 🌗 Global Toggle */}
@@ -95,7 +111,8 @@ export default function Login() {
           </div>
 
           <button
-            type="submit"
+             type="button"
+             onClick={handleLogin}
             className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition"
           >
             Log In

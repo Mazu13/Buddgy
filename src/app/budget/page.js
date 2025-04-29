@@ -33,26 +33,39 @@ export default function BudgetPage() {
   const [editedEntry, setEditedEntry] = useState({ name: "", amount: "" });
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-  }, [status, router]);
-
-  useEffect(() => {
-    const savedBoards = localStorage.getItem("buddgy-boards");
-    if (savedBoards) {
-      const parsed = JSON.parse(savedBoards);
-    
-      // Eğer entry'de `date` yoksa, bugünün tarihini ver
-      const withDates = parsed.map((board) => ({
-        ...board,
-        entries: board.entries.map((entry) => ({
-          ...entry,
-          date: entry.date || new Date().toISOString().split("T")[0],
-        })),
-      }));
-    
-      setBoards(withDates);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
     }
   }, []);
+  
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+  
+    const fetchBoards = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/boards`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+  
+        if (!res.ok) throw new Error("Failed to fetch boards");
+        const data = await res.json();
+        setBoards(data); // backend'deki board formatına göre gerekirse uyarlarsın
+      } catch (err) {
+        console.error("Error loading boards:", err);
+      }
+    };
+  
+    fetchBoards();
+  }, []);
+  
 
   useEffect(() => {
     localStorage.setItem("buddgy-boards", JSON.stringify(boards));
@@ -166,32 +179,47 @@ export default function BudgetPage() {
     setEditedEntry({ name: "", amount: "" });
   };
 
-  const handleAddEntry = () => {
+  const handleAddEntry = async () => {
+    const token = localStorage.getItem("token");
     const { type, name, amount } = entryData;
     if (!name || !amount || !selectedBoardId) return;
   
     const newEntry = {
+      board_id: selectedBoardId,
       type,
       name,
       amount: parseFloat(amount),
-      date: new Date().toISOString().split("T")[0], // YYYY-MM-DD formatında // 📌 Tarih eklendi
     };
   
-    setBoards((prevBoards) =>
-      prevBoards.map((board) =>
-        board.id === selectedBoardId
-          ? {
-              ...board,
-              entries: [...board.entries, newEntry],
-            }
-          : board
-      )
-    );
+    try {
+      const res = await fetch(`${API_BASE_URL}/entries`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newEntry),
+      });
+  
+      if (!res.ok) throw new Error("Entry creation failed");
+      const saved = await res.json();
+  
+      setBoards((prevBoards) =>
+        prevBoards.map((board) =>
+          board.id === selectedBoardId
+            ? { ...board, entries: [...board.entries, saved] }
+            : board
+        )
+      );
+    } catch (err) {
+      console.error("Add entry error:", err);
+    }
   
     setEntryData({ type: "+", name: "", amount: "" });
     setSelectedBoardId(null);
     setShowEntryModal(false);
   };
+  
   
 
   if (status === "loading") return <div className="text-center mt-20">Loading...</div>;
@@ -232,7 +260,7 @@ export default function BudgetPage() {
           </div>
 
           <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="boards" direction="horizontal" type="BOARD" isDropDisabled={false}>
+            <Droppable droppableId="boards" direction="horizontal" type="BOARD">
               {(provided) => (
                 <div
                 ref={provided.innerRef} {...provided.droppableProps} {...provided.dragHandleProps}
