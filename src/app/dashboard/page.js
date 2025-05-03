@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { API_BASE_URL } from "@/lib/config";
+import { fetchBoards } from "@/lib/api";
+
 
 import {
   CircularProgressbar,
@@ -15,23 +17,50 @@ import { Sparkles, Bell, User } from "lucide-react";
 
 export default function Dashboard() {
   const router = useRouter();
-
+  const [username, setUsername] = useState('');
   const [boards, setBoards] = useState([]);
   const [showingIncome, setShowingIncome] = useState(true);
-  const [members, setMembers] = useState([{ name: "Ayşenur Mazıbaş" }]);
-
+  const [members, setMembers] = useState([]);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+  
+    fetch(`${API_BASE_URL}/users/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data?.firstname && data?.lastname) {
+          setUsername(data.firstname); // Welcome kısmı için
+          setMembers([{ name: `${data.firstname} ${data.lastname}` }]); // Members paneli için
+        }
+      })
+      .catch(err => console.error("Failed to fetch user:", err));
+  }, []);
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/login");
       return;
     }
-
-    const savedBoards = localStorage.getItem("buddgy-boards");
-    if (savedBoards) {
-      setBoards(JSON.parse(savedBoards));
-    }
+  
+    const loadBoards = async () => {
+      try {
+        const data = await fetchBoards(); 
+        setBoards(data || []);             
+        localStorage.setItem("budgetBoards", JSON.stringify(data)); 
+      } catch (err) {
+        console.error("Error fetching boards:", err);
+      }
+    };
+  
+    loadBoards();
   }, [router]);
+  
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -103,7 +132,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start mb-8">
             <div>
               <h1 className="text-3xl font-bold">
-                Welcome, {localStorage.getItem("name")?.split(" ")[0]} 👋
+              Welcome, {username} 👋
               </h1>
               <p className="text-gray-500 dark:text-gray-400 text-sm">
                 Here's a quick overview of your budget.
@@ -122,12 +151,14 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-10 mb-12 w-full">
+
+
             <div
               onClick={() => setShowingIncome(!showingIncome)}
-              className="cursor-pointer bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 p-6 rounded-2xl shadow-sm flex flex-col items-center justify-center hover:shadow-md transition"
+              className="w-full sm:w-1/2 p-8 cursor-pointer bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col items-center justify-center hover:shadow-md transition"
             >
-              <div className="w-28 h-28 mb-2">
+              <div className="w-60 h-60 mb-2">
                 <CircularProgressbar
                   value={showingIncome ? incomePercent : expensePercent}
                   text={`${showingIncome ? incomePercent : expensePercent}%`}
@@ -146,8 +177,9 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 p-6 rounded-2xl shadow-sm flex flex-col items-center justify-center">
-              <div className="w-24 h-24 mb-2">
+            <div className="w-full sm:w-1/2 p-8 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col items-center justify-center">
+
+              <div className="w-60 h-60 mb-2">
                 <CircularProgressbar
                   value={balancePercent}
                   text={`${balancePercent}%`}
@@ -163,25 +195,11 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-xl shadow flex items-start gap-2 mb-6">
-            <Sparkles className="text-yellow-600 mt-1 w-5 h-5" />
-            <div>
-              <p className="font-semibold text-yellow-800 dark:text-yellow-300">Quick Tip</p>
-              <p className="text-gray-700 dark:text-gray-300 text-sm mt-1">Working on it...</p>
-            </div>
-          </div>
-
-          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 p-4 rounded-xl shadow flex items-start gap-2">
-            <Bell className="text-red-500 mt-1 w-5 h-5" />
-            <div>
-              <p className="font-semibold text-red-800 dark:text-red-300">Alert</p>
-              <p className="text-gray-700 dark:text-gray-300 text-sm mt-1">Working on it...!</p>
-            </div>
-          </div>
+       
         </main>
 
         <aside className="w-64 bg-white dark:bg-white/10 border-l border-gray-200 dark:border-white/10 p-6 hidden lg:block">
-          <h2 className="text-lg font-semibold mb-4">Members</h2>
+          <h2 className="text-lg font-semibold mb-4">User</h2>
           <ul className="space-y-3">
             {members.map((member, idx) => (
               <li key={idx} className="flex items-center space-x-3">

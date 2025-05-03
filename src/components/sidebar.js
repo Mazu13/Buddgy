@@ -11,9 +11,7 @@ export default function Sidebar() {
     { name: "Dashboard", href: "/dashboard", icon: <Home size={18} /> },
     { name: "Budget Tracking", href: "/budget", icon: <Wallet size={18} /> },
     { name: "Analytics", href: "/analytics", icon: <BarChart size={18} /> },
-    { name: "AI Recommendations", href: "/ai", icon: <Bot size={18} /> },
-    { name: "Alerts", href: "/alerts", icon: <Bell size={18} /> },
-    { name: "Team", href: "/team", icon: <Users size={18} /> },
+    
   ];
 
   return (

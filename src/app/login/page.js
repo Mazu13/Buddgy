@@ -122,22 +122,32 @@ export default function Login() {
         </form>
 
         <button
-          type="button"
-          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-          className="w-full flex items-center justify-center gap-2 py-2 px-4
-              bg-gradient-to-r from-purple-400 to-indigo-500
-              text-white font-medium rounded-lg border border-transparent
-              transition-all duration-300
-              hover:bg-white hover:text-gray-800 hover:border-gray-300 dark:hover:text-white"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
-            <path d="M533.5 278.4c0-17.4-1.6-34.1-4.7-50.2H272v95.1h146.9c-6.3 33.6-25 62.2-53.5 81.3v67h86.6c50.7-46.7 81.5-115.6 81.5-193.2z" fill="#4285F4" />
-            <path d="M272 544.3c72.6 0 133.5-24.1 178-65.4l-86.6-67c-24.1 16.2-55 25.8-91.4 25.8-70 0-129.4-47.2-150.7-110.2H33.4v69.3c44.3 88.3 135.3 147.5 238.6 147.5z" fill="#34A853" />
-            <path d="M121.3 327.5c-10.2-30.6-10.2-63.9 0-94.5V163.7H33.4c-37.8 75.7-37.8 164.9 0 240.6l87.9-67z" fill="#FBBC05" />
-            <path d="M272 107.3c39.5 0 75 13.6 102.9 40.2l77.3-77.3C405.5 25.5 345 0 272 0 168.7 0 77.7 59.2 33.4 147.5l87.9 67C142.6 154.5 202 107.3 272 107.3z" fill="#EA4335" />
-          </svg>
-          <span>Sign in with Google</span>
-        </button>
+  type="button"
+  onClick={() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("name");
+    localStorage.removeItem("email");
+
+    signIn("google", {
+      callbackUrl: "/google-callback",
+      prompt: "select_account",
+    });
+    
+  }}
+  className="w-full flex items-center justify-center gap-2 py-2 px-4
+      bg-gradient-to-r from-purple-400 to-indigo-500
+      text-white font-medium rounded-lg border border-transparent
+      transition-all duration-300
+      hover:bg-white hover:text-gray-800 hover:border-gray-300 dark:hover:text-white"
+>
+  <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
+    <path d="M533.5 278.4c0-17.4-1.6-34.1-4.7-50.2H272v95.1h146.9c-6.3 33.6-25 62.2-53.5 81.3v67h86.6c50.7-46.7 81.5-115.6 81.5-193.2z" fill="#4285F4" />
+    <path d="M272 544.3c72.6 0 133.5-24.1 178-65.4l-86.6-67c-24.1 16.2-55 25.8-91.4 25.8-70 0-129.4-47.2-150.7-110.2H33.4v69.3c44.3 88.3 135.3 147.5 238.6 147.5z" fill="#34A853" />
+    <path d="M121.3 327.5c-10.2-30.6-10.2-63.9 0-94.5V163.7H33.4c-37.8 75.7-37.8 164.9 0 240.6l87.9-67z" fill="#FBBC05" />
+    <path d="M272 107.3c39.5 0 75 13.6 102.9 40.2l77.3-77.3C405.5 25.5 345 0 272 0 168.7 0 77.7 59.2 33.4 147.5l87.9 67C142.6 154.5 202 107.3 272 107.3z" fill="#EA4335" />
+  </svg>
+  <span>Sign in with Google</span>
+</button>
 
         <div className="text-center mt-4">
           <a href="/password" className="text-sm text-cyan-600 hover:underline dark:text-cyan-400">
